@@ -1,0 +1,112 @@
+---
+title: "hw2"
+author: "Sasha Pivovarov"
+date: "March 25, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(irr)
+```
+
+### 1.1
+Скачайте датасет hw1_1_zilo_class.csv. Получите тиббл содержащий два столбца: stimulus_source и количество уникальных слов в датасете (n).
+
+```{r}
+zilo_df <- as_tibble(read_csv("https://raw.githubusercontent.com/agricolamz/2018_data_analysis_for_linguists/master/data/students/s-klimenko/hw2_agreement/hw2_1_zilo_class.csv"))
+zilo_df %>%
+  distinct(stimulus_source, stimulus)  %>% 
+  count(stimulus_source)
+```
+
+### 1.2
+Преобразуйте датасет hw1_1_zilo_class.csv. Посчитайте процент полного согласия всех спикеров.
+
+```{r}
+zilo_df %>% 
+  select(s_id, stimulus, translation_ru, stimulus_source, class) %>% 
+  spread(key = s_id, value = class) ->
+  zilo_classes_short
+head(zilo_classes_short)
+
+agree(zilo_classes_short[,-c(1:3)])
+```
+
+### 1.3
+Из преобразованным датасета hw1_1_zilo_class.csv выберите спикеров с номером 7 и 11 и посчитайте для них каппу Коэна.
+
+```{r}
+zilo_classes_2s <- zilo_classes_short[,c(7, 11)]
+kappa2(zilo_classes_2s)
+```
+
+### 1.4
+Посчитайте каппу Фляйса для всех спикеров преобразованного датасета hw1_1_zilo_class.csv.
+
+```{r}
+kappam.fleiss(zilo_classes_short[,-c(1:3)])
+```
+
+### 1.5
+Представим, что Вы пишите статью, напишите короткий абзац, который бы обобщал результаты, полученные в предыдущих заданиях.
+
+Был проведён эксперимент, в от носителей диалекта Зило андийского языка требовалось для 89 слов определить, заимствованные они или исконные. Результаты обработки полученных данных: процент полного согласия спикеров: 73. Каппа Коэна - 0.75 (значимое согласие). Каппа Фляйса - 0.84 (очень значимое согласие).
+
+### 2.1
+Скачайте датасет hw1_2_verbs.csv (см. описание выше). Посчитайте количество участников в датасете (в ответ выведите тибл с переменной n).
+
+```{r}
+verbs_df <- as_tibble(read_csv("https://raw.githubusercontent.com/agricolamz/2018_data_analysis_for_linguists/master/data/students/s-klimenko/hw2_agreement/hw2_2_verbs.csv"))
+verbs_df %>%
+  distinct(SubjectCode) %>% 
+  count()
+```
+
+### 2.2
+Посчитайте среднюю оценку глаголов разного типа для каждого пола в датасете (в ответ выведите тибл с переменными WordType, Gender и mean).
+
+```{r}
+verbs_df %>%
+  group_by(WordType, Gender) %>% 
+  summarise(mean = mean(GivenScore))
+```
+
+### 2.3
+Преобразуйте датасет в короткий формат и удалите строки, в которых есть пропущенные значения. Посчитайте процент полного согласия.
+
+```{r}
+verbs_df %>% 
+  select(SubjectCode, Stimulus, GivenScore) %>% 
+  spread(key = SubjectCode, value = GivenScore) ->
+  short_verbs_df
+short_verbs_df <- drop_na(short_verbs_df)
+agree(short_verbs_df[,-c(1:3)])
+```
+
+### 2.4
+Посчитайте каппу Фляйса для преобразованного датасета.
+
+```{r}
+kappam.fleiss(short_verbs_df[,-c(1:3)])
+```
+
+### 2.5
+Посчитайте ICC для преобразованного датасета.
+
+```{r}
+icc(data_short[,-c(1:3)], model = "twoway", type = "agreement")
+```
+
+### 2.6
+Создайте тибл, содержащий минимальное (min) и максимальное (max) значение попарной корреляции Кендала ответов всех участников эксперимента со словами (т. е. корреляция ответов АА и AB, AA и AC и т. д.). В преобразовании матрицы, пораждаемой функцией cor() мне очень помогла функция as.table().
+
+```{r}
+kendall_corr <- as.table(cor(data_short[, -c(1:3)], method = "kendall"))
+tibble(min_kendall = min(kendall_corr[lower.tri(kendall_corr)]), max_kendall = max(kendall_corr[lower.tri(kendall_corr)]))
+```
